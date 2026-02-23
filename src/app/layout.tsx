@@ -24,10 +24,10 @@ export default function RootLayout({
                 <span className="text-primary-600">文案</span>创作加速器
               </h1>
               <nav className="flex items-center gap-4">
-                <a href="/create-style" className="text-gray-600 hover:text-primary-600 transition-colors">
+                <a href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
                   风格创建
                 </a>
-                <a href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
+                <a href="/create-style" className="text-gray-600 hover:text-primary-600 transition-colors">
                   首页
                 </a>
               </nav>
