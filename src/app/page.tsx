@@ -92,13 +92,13 @@ export default function HomePage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          返回风格库
+          返回首页
         </button>
       </div>
 
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-3">
-          <span className="text-primary-600">文案创作</span>加速器
+        <h2 className="text-3xl font-bold mb-3 text-primary-600">
+          文案创作加速器
         </h2>
         <p className="text-gray-600">
           输入一个或多个视频文案，AI将自动分析并提取文案风格特征
