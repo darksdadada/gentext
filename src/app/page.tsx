@@ -19,6 +19,7 @@ export default function HomePage() {
   const [styleName, setStyleName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
   const addTextInput = () => {
     setTexts([...texts, { id: Date.now().toString(), value: '' }])
@@ -74,7 +75,10 @@ export default function HomePage() {
       }
 
       addStyle(newStyle)
-      router.push('/')
+      setSuccess(true)
+      setTimeout(() => {
+        router.push('/create-style')
+      }, 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : '风格提取失败')
     } finally {
@@ -166,6 +170,15 @@ export default function HomePage() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          风格创建成功！正在跳转到首页...
         </div>
       )}
 
