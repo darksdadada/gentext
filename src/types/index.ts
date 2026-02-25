@@ -12,6 +12,13 @@ export interface Framework {
   content: string
 }
 
+export interface CopywritingVersion {
+  id: string
+  content: string
+  createdAt: string
+  feedback?: string
+}
+
 export interface AppState {
   styles: Style[]
   currentStyle: Style | null
@@ -19,6 +26,8 @@ export interface AppState {
   frameworks: Framework[]
   selectedFramework: Framework | null
   finalCopywriting: string
+  copywritingHistory: CopywritingVersion[]
+  theme: 'light' | 'dark' | 'system'
   
   setStyles: (styles: Style[]) => void
   addStyle: (style: Style) => void
@@ -29,5 +38,9 @@ export interface AppState {
   updateFramework: (id: string, content: string) => void
   setSelectedFramework: (framework: Framework | null) => void
   setFinalCopywriting: (text: string) => void
+  addToHistory: (content: string, feedback?: string) => void
+  restoreFromHistory: (id: string) => void
+  clearHistory: () => void
+  setTheme: (theme: 'light' | 'dark' | 'system') => void
   reset: () => void
 }

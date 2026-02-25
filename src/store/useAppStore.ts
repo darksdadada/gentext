@@ -1,16 +1,18 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { AppState, Style, Framework } from '@/types'
+import { AppState, Style, Framework, CopywritingVersion } from '@/types'
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       styles: [],
       currentStyle: null,
       currentTopic: '',
       frameworks: [],
       selectedFramework: null,
       finalCopywriting: '',
+      copywritingHistory: [],
+      theme: 'system',
 
       setStyles: (styles: Style[]) => set({ styles }),
       
@@ -40,17 +42,44 @@ export const useAppStore = create<AppState>()(
       
       setFinalCopywriting: (text: string) => set({ finalCopywriting: text }),
       
+      addToHistory: (content: string, feedback?: string) => set((state) => ({
+        copywritingHistory: [
+          {
+            id: Date.now().toString(),
+            content,
+            createdAt: new Date().toISOString(),
+            feedback
+          },
+          ...state.copywritingHistory
+        ].slice(0, 20)
+      })),
+      
+      restoreFromHistory: (id: string) => {
+        const history = get().copywritingHistory.find(h => h.id === id)
+        if (history) {
+          set({ finalCopywriting: history.content })
+        }
+      },
+      
+      clearHistory: () => set({ copywritingHistory: [] }),
+      
+      setTheme: (theme: 'light' | 'dark' | 'system') => set({ theme }),
+      
       reset: () => set({
         currentStyle: null,
         currentTopic: '',
         frameworks: [],
         selectedFramework: null,
         finalCopywriting: '',
+        copywritingHistory: [],
       }),
     }),
     {
       name: 'gentext-storage',
-      partialize: (state) => ({ styles: state.styles }),
+      partialize: (state) => ({ 
+        styles: state.styles,
+        theme: state.theme 
+      }),
     }
   )
 )
