@@ -23,10 +23,10 @@ export default function ProgressBar() {
   
   return (
     <div className="fixed top-16 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-      <div className="max-w-4xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex items-start justify-center">
           {steps.map((step, index) => (
-            <div key={step.path} className="flex items-center">
+            <div key={step.path} className="flex items-start">
               <div className="flex flex-col items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
@@ -45,7 +45,7 @@ export default function ProgressBar() {
                     step.icon
                   )}
                 </div>
-                <span className={`text-xs mt-1 hidden sm:block ${
+                <span className={`text-xs mt-2 ${
                   index <= currentStep 
                     ? 'text-primary-600 dark:text-primary-400 font-medium' 
                     : 'text-gray-400 dark:text-gray-500'
@@ -53,12 +53,15 @@ export default function ProgressBar() {
                   {step.label}
                 </span>
               </div>
+              
               {index < steps.length - 1 && (
-                <div className={`w-16 sm:w-24 md:w-32 h-0.5 mx-2 transition-all duration-300 ${
-                  index < currentStep 
-                    ? 'bg-primary-600' 
-                    : 'bg-gray-200 dark:bg-gray-700'
-                }`} />
+                <div className="relative w-16 sm:w-24 md:w-32 mx-3 h-8">
+                  <div className={`absolute top-4 left-0 right-0 h-0.5 transition-all duration-300 ${
+                    index < currentStep 
+                      ? 'bg-primary-600' 
+                      : 'bg-gray-200 dark:bg-gray-700'
+                  }`} />
+                </div>
               )}
             </div>
           ))}
