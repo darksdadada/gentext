@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
 
-const client = new OpenAI({
-  apiKey: process.env.DASHSCOPE_API_KEY || 'sk-4561661278024ff4bcd1844225834ea8',
-  baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-  timeout: 120000,
-})
+export const runtime = 'edge'
+
+const API_KEY = process.env.DASHSCOPE_API_KEY || 'sk-4561661278024ff4bcd1844225834ea8'
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error | null = null
@@ -26,6 +24,31 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   }
   
   throw lastError
+}
+
+async function callAPI(prompt: string, systemPrompt: string): Promise<string> {
+  const response = await fetch(`${BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'qwen-plus',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data.choices[0]?.message?.content || ''
 }
 
 export async function POST(request: NextRequest) {
@@ -57,24 +80,12 @@ ${combinedText}
 
 请确保分析结果能够指导后续生成同风格的新文案。`
 
-    const completion = await withRetry(async () => {
-      return await client.chat.completions.create({
-        model: 'qwen-plus',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一位专业的文案分析师，擅长分析各类视频文案的风格特征，并能够提炼出可复用的风格模板。'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-      })
+    const styleAnalysis = await withRetry(async () => {
+      return await callAPI(
+        prompt,
+        '你是一位专业的文案分析师，擅长分析各类视频文案的风格特征，并能够提炼出可复用的风格模板。'
+      )
     })
-
-    const styleAnalysis = completion.choices[0]?.message?.content || ''
     
     return NextResponse.json({ styleAnalysis })
   } catch (error) {

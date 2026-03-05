@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
 
-const client = new OpenAI({
-  apiKey: process.env.DASHSCOPE_API_KEY || 'sk-4561661278024ff4bcd1844225834ea8',
-  baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-  timeout: 120000,
-})
+export const runtime = 'edge'
+
+const API_KEY = process.env.DASHSCOPE_API_KEY || 'sk-4561661278024ff4bcd1844225834ea8'
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error | null = null
@@ -26,6 +24,31 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   }
   
   throw lastError
+}
+
+async function callAPI(prompt: string, systemPrompt: string): Promise<string> {
+  const response = await fetch(`${BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'qwen-plus',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data.choices[0]?.message?.content || ''
 }
 
 export async function POST(request: NextRequest) {
@@ -65,24 +88,12 @@ ${feedback}
 
 请直接输出修改后的完整文案内容，不需要额外的说明。`
 
-    const completion = await withRetry(async () => {
-      return await client.chat.completions.create({
-        model: 'qwen-plus',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长根据用户反馈修改文案，保持风格一致的同时满足用户需求。'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-      })
+    const copywriting = await withRetry(async () => {
+      return await callAPI(
+        prompt,
+        '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长根据用户反馈修改文案，保持风格一致的同时满足用户需求。'
+      )
     })
-
-    const copywriting = completion.choices[0]?.message?.content || ''
     
     return NextResponse.json({ copywriting })
   } catch (error) {
