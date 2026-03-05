@@ -14,6 +14,8 @@ export default function GeneratePage() {
     setFrameworks, 
     updateFramework,
     setSelectedFramework,
+    setFinalCopywriting,
+    clearHistory,
     promptConfig
   } = useAppStore()
   
@@ -68,6 +70,8 @@ export default function GeneratePage() {
     const updatedFramework = frameworks.find(f => f.id === framework.id)
     if (updatedFramework) {
       setSelectedFramework(updatedFramework)
+      setFinalCopywriting('')
+      clearHistory()
       router.push('/result')
     }
   }
