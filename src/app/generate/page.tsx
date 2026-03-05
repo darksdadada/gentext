@@ -19,11 +19,10 @@ export default function GeneratePage() {
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [hasGenerated, setHasGenerated] = useState(false)
 
   useEffect(() => {
     if (!currentStyle || !currentTopic) {
-      router.push('/styles')
+      router.push('/')
       return
     }
   }, [currentStyle, currentTopic, router])
@@ -58,7 +57,6 @@ export default function GeneratePage() {
       }
 
       setFrameworks(data.frameworks)
-      setHasGenerated(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : '框架生成失败')
     } finally {
@@ -109,7 +107,7 @@ export default function GeneratePage() {
         </div>
       </div>
 
-      {!hasGenerated && frameworks.length === 0 && (
+      {frameworks.length === 0 && (
         <div className="card text-center py-12">
           <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +146,7 @@ export default function GeneratePage() {
         </div>
       )}
 
-      {hasGenerated && frameworks.length > 0 && (
+      {frameworks.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
