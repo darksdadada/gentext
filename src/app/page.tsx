@@ -7,11 +7,13 @@ import { Style } from '@/types'
 
 export default function HomePage() {
   const router = useRouter()
-  const { styles, deleteStyle, setCurrentStyle, setCurrentTopic, resetForNewCreation } = useAppStore()
+  const { styles, deleteStyle, updateStyle, setCurrentStyle, setCurrentTopic, resetForNewCreation } = useAppStore()
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null)
   const [topic, setTopic] = useState('')
   const [showTopicInput, setShowTopicInput] = useState(false)
   const [expandedStyle, setExpandedStyle] = useState<string | null>(null)
+  const [editingStyle, setEditingStyle] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
 
   const handleSelectStyle = (style: Style) => {
     setSelectedStyle(style)
@@ -28,11 +30,30 @@ export default function HomePage() {
     }
   }
 
+  const handleEditStyle = (style: Style) => {
+    setEditingStyle(style.id)
+    setEditContent(style.styleAnalysis)
+  }
+
+  const handleSaveEdit = (id: string) => {
+    updateStyle(id, { styleAnalysis: editContent })
+    setEditingStyle(null)
+    if (selectedStyle?.id === id) {
+      setSelectedStyle({ ...selectedStyle, styleAnalysis: editContent })
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingStyle(null)
+    setEditContent('')
+  }
+
   const handleProceed = () => {
     if (!selectedStyle || !topic.trim()) return
     
     resetForNewCreation()
-    setCurrentStyle(selectedStyle)
+    const updatedStyle = styles.find(s => s.id === selectedStyle.id) || selectedStyle
+    setCurrentStyle(updatedStyle)
     setCurrentTopic(topic.trim())
     router.push('/generate')
   }
@@ -123,17 +144,32 @@ export default function HomePage() {
                   <h3 className="font-semibold text-gray-800 dark:text-gray-100 truncate flex-1">
                     {style.name}
                   </h3>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteStyle(style.id)
-                    }}
-                    className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 ml-2 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-1 ml-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditStyle(style)
+                      }}
+                      className="text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 p-1 transition-colors"
+                      title="编辑风格分析"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteStyle(style.id)
+                      }}
+                      className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 p-1 transition-colors"
+                      title="删除风格"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
@@ -242,6 +278,49 @@ export default function HomePage() {
             </div>
           )}
         </>
+      )}
+
+      {editingStyle && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                编辑风格分析
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                您可以直接修改风格分析内容，修改后会立即保存
+              </p>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="textarea-field min-h-[400px] text-sm font-mono"
+                placeholder="风格分析内容..."
+              />
+            </div>
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={handleCancelEdit}
+                className="btn-secondary"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => handleSaveEdit(editingStyle)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                保存修改
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
