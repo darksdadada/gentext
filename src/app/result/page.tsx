@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/useAppStore'
+import { CreationRecord } from '@/types'
 
 export default function ResultPage() {
   const router = useRouter()
@@ -15,7 +16,10 @@ export default function ResultPage() {
     copywritingHistory,
     addToHistory,
     restoreFromHistory,
-    reset
+    currentRecordId,
+    addCreationRecord,
+    updateCreationRecord,
+    promptConfig
   } = useAppStore()
   
   const [isLoading, setIsLoading] = useState(false)
@@ -37,6 +41,33 @@ export default function ResultPage() {
     }
   }, [currentStyle, currentTopic, selectedFramework, finalCopywriting, router])
 
+  const saveToRecord = useCallback((content: string, versions: typeof copywritingHistory) => {
+    if (!currentStyle || !currentTopic || !selectedFramework) return
+
+    const recordData: Partial<CreationRecord> = {
+      styleId: currentStyle.id,
+      styleName: currentStyle.name,
+      topic: currentTopic,
+      framework: selectedFramework.content,
+      finalCopywriting: content,
+      versions: versions,
+      updatedAt: new Date().toISOString()
+    }
+
+    if (currentRecordId) {
+      updateCreationRecord(currentRecordId, recordData)
+    } else {
+      const newRecord: CreationRecord = {
+        id: Date.now().toString(),
+        ...recordData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as CreationRecord
+      addCreationRecord(newRecord)
+      useAppStore.setState({ currentRecordId: newRecord.id })
+    }
+  }, [currentStyle, currentTopic, selectedFramework, currentRecordId, addCreationRecord, updateCreationRecord])
+
   const generateCopywriting = useCallback(async () => {
     if (!currentStyle || !currentTopic || !selectedFramework) return
     
@@ -44,13 +75,20 @@ export default function ResultPage() {
     setError('')
     
     try {
+      const userPrompt = promptConfig.generateCopywriting.userPromptTemplate
+        .replace('{styleAnalysis}', currentStyle.styleAnalysis)
+        .replace('{topic}', currentTopic)
+        .replace('{framework}', selectedFramework.content)
+
       const response = await fetch('/api/generate-copywriting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           styleAnalysis: currentStyle.styleAnalysis,
           topic: currentTopic,
-          framework: selectedFramework.content
+          framework: selectedFramework.content,
+          systemPrompt: promptConfig.generateCopywriting.systemPrompt,
+          userPrompt: userPrompt
         })
       })
 
@@ -63,12 +101,22 @@ export default function ResultPage() {
       setFinalCopywriting(data.copywriting)
       setEditableCopywriting(data.copywriting)
       addToHistory(data.copywriting, '初始生成')
+      
+      const newHistory = [
+        {
+          id: Date.now().toString(),
+          content: data.copywriting,
+          createdAt: new Date().toISOString(),
+          feedback: '初始生成'
+        }
+      ]
+      saveToRecord(data.copywriting, newHistory)
     } catch (err) {
       setError(err instanceof Error ? err.message : '文案生成失败')
     } finally {
       setIsLoading(false)
     }
-  }, [currentStyle, currentTopic, selectedFramework, setFinalCopywriting, addToHistory])
+  }, [currentStyle, currentTopic, selectedFramework, setFinalCopywriting, addToHistory, saveToRecord, promptConfig])
 
   const reviseCopywriting = useCallback(async () => {
     if (!editableCopywriting.trim() || !feedback.trim()) return
@@ -77,6 +125,13 @@ export default function ResultPage() {
     setError('')
     
     try {
+      const userPrompt = promptConfig.reviseCopywriting.userPromptTemplate
+        .replace('{styleAnalysis}', currentStyle?.styleAnalysis || '')
+        .replace('{topic}', currentTopic)
+        .replace('{framework}', selectedFramework?.content || '')
+        .replace('{currentCopywriting}', editableCopywriting)
+        .replace('{feedback}', feedback)
+
       const response = await fetch('/api/revise-copywriting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,7 +140,9 @@ export default function ResultPage() {
           topic: currentTopic,
           framework: selectedFramework?.content,
           currentCopywriting: editableCopywriting,
-          feedback: feedback
+          feedback: feedback,
+          systemPrompt: promptConfig.reviseCopywriting.systemPrompt,
+          userPrompt: userPrompt
         })
       })
 
@@ -98,13 +155,22 @@ export default function ResultPage() {
       setFinalCopywriting(data.copywriting)
       setEditableCopywriting(data.copywriting)
       addToHistory(data.copywriting, feedback)
+      
+      const newVersion = {
+        id: Date.now().toString(),
+        content: data.copywriting,
+        createdAt: new Date().toISOString(),
+        feedback: feedback
+      }
+      const newHistory = [newVersion, ...copywritingHistory].slice(0, 20)
+      saveToRecord(data.copywriting, newHistory)
       setFeedback('')
     } catch (err) {
       setError(err instanceof Error ? err.message : '文案修改失败')
     } finally {
       setIsRevising(false)
     }
-  }, [editableCopywriting, feedback, currentStyle, currentTopic, selectedFramework, setFinalCopywriting, addToHistory])
+  }, [editableCopywriting, feedback, currentStyle, currentTopic, selectedFramework, setFinalCopywriting, addToHistory, copywritingHistory, saveToRecord, promptConfig])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -115,11 +181,6 @@ export default function ResultPage() {
       alert('复制失败，请手动复制')
     }
   }, [editableCopywriting])
-
-  const handleStartOver = useCallback(() => {
-    reset()
-    router.push('/')
-  }, [reset, router])
 
   const handleRestore = useCallback((id: string) => {
     restoreFromHistory(id)
@@ -378,16 +439,7 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center gap-4">
-            <button
-              onClick={handleStartOver}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              开始新创作
-            </button>
+          <div className="mt-6 flex justify-center">
             <button
               onClick={() => router.push('/')}
               className="btn-primary flex items-center gap-2"

@@ -48,12 +48,18 @@ export default function RootLayout({
                 <span className="text-primary-600 dark:text-primary-400">文案</span>创作加速器
               </h1>
               <div className="flex items-center gap-4">
-                <nav className="hidden sm:flex items-center gap-4">
-                  <a href="/" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors font-medium">
+                <nav className="hidden sm:flex items-center gap-1">
+                  <a href="/" className="nav-link">
                     首页
                   </a>
-                  <a href="/create-style" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                  <a href="/create-style" className="nav-link">
                     风格创建
+                  </a>
+                  <a href="/history" className="nav-link">
+                    历史记录
+                  </a>
+                  <a href="/prompts" className="nav-link">
+                    提示词修改
                   </a>
                 </nav>
                 <ThemeToggle />

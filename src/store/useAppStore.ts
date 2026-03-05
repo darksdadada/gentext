@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { AppState, Style, Framework, CopywritingVersion } from '@/types'
+import { AppState, Style, Framework, CopywritingVersion, CreationRecord, PromptConfig, DEFAULT_PROMPT_CONFIG } from '@/types'
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -13,6 +13,9 @@ export const useAppStore = create<AppState>()(
       finalCopywriting: '',
       copywritingHistory: [],
       theme: 'system',
+      creationRecords: [],
+      currentRecordId: null,
+      promptConfig: DEFAULT_PROMPT_CONFIG,
 
       setStyles: (styles: Style[]) => set({ styles }),
       
@@ -72,13 +75,65 @@ export const useAppStore = create<AppState>()(
         selectedFramework: null,
         finalCopywriting: '',
         copywritingHistory: [],
+        currentRecordId: null,
       }),
+
+      resetForNewCreation: () => set({
+        frameworks: [],
+        selectedFramework: null,
+        finalCopywriting: '',
+        copywritingHistory: [],
+        currentRecordId: null,
+      }),
+
+      addCreationRecord: (record: CreationRecord) => set((state) => ({
+        creationRecords: [record, ...state.creationRecords].slice(0, 100)
+      })),
+
+      updateCreationRecord: (id: string, updates: Partial<CreationRecord>) => set((state) => ({
+        creationRecords: state.creationRecords.map(r => 
+          r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r
+        )
+      })),
+
+      getCreationRecord: (id: string) => {
+        return get().creationRecords.find(r => r.id === id)
+      },
+
+      setCurrentRecordId: (id: string | null) => set({ currentRecordId: id }),
+
+      loadFromCreationRecord: (record: CreationRecord) => {
+        const style = get().styles.find(s => s.id === record.styleId)
+        set({
+          currentStyle: style || null,
+          currentTopic: record.topic,
+          frameworks: [{ id: 'framework-1', title: '已选框架', content: record.framework }],
+          selectedFramework: { id: 'framework-1', title: '已选框架', content: record.framework },
+          finalCopywriting: record.finalCopywriting,
+          copywritingHistory: record.versions,
+          currentRecordId: record.id,
+        })
+      },
+
+      setPromptConfig: (config: PromptConfig) => set({ promptConfig: config }),
+
+      updatePromptConfig: (key: keyof PromptConfig, value: Partial<PromptConfig[keyof PromptConfig]>) => set((state) => ({
+        promptConfig: {
+          ...state.promptConfig,
+          [key]: {
+            ...state.promptConfig[key],
+            ...value
+          }
+        }
+      })),
     }),
     {
       name: 'gentext-storage',
       partialize: (state) => ({ 
         styles: state.styles,
-        theme: state.theme 
+        theme: state.theme,
+        creationRecords: state.creationRecords,
+        promptConfig: state.promptConfig 
       }),
     }
   )

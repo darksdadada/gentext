@@ -40,7 +40,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { texts } = await request.json()
+    const { texts, systemPrompt, userPrompt } = await request.json()
     
     if (!texts || !Array.isArray(texts) || texts.length === 0) {
       return NextResponse.json(
@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
 
     const combinedText = texts.map((t: string, i: number) => `【文案${i + 1}】\n${t}`).join('\n\n')
     
-    const prompt = `你是一位专业的文案分析师。请分析以下${texts.length}个视频文案，提取出它们的共同风格特征。
+    const defaultSystemPrompt = '你是一位专业的文案分析师，擅长分析各类视频文案的风格特征，并能够提炼出可复用的风格模板。'
+    const defaultUserPrompt = `你是一位专业的文案分析师。请分析以下${texts.length}个视频文案，提取出它们的共同风格特征。
 
 ${combinedText}
 
@@ -67,6 +68,10 @@ ${combinedText}
 
 请确保分析结果能够指导后续生成同风格的新文案。`
 
+    const finalUserPrompt = userPrompt || defaultUserPrompt
+      .replace('{textsCount}', texts.length.toString())
+      .replace('{combinedTexts}', combinedText)
+
     const client = createClient()
     const completion = await withRetry(async () => {
       return await client.chat.completions.create({
@@ -74,11 +79,11 @@ ${combinedText}
         messages: [
           {
             role: 'system',
-            content: '你是一位专业的文案分析师，擅长分析各类视频文案的风格特征，并能够提炼出可复用的风格模板。'
+            content: systemPrompt || defaultSystemPrompt
           },
           {
             role: 'user',
-            content: prompt
+            content: finalUserPrompt
           }
         ],
         temperature: 0.7,

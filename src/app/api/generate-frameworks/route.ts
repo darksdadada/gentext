@@ -40,7 +40,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { styleAnalysis, topic } = await request.json()
+    const { styleAnalysis, topic, systemPrompt, userPrompt } = await request.json()
     
     if (!styleAnalysis || !topic) {
       return NextResponse.json(
@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const prompt = `你是一位真实的视频内容创作者，正在为自己的新视频策划文案框架。你要像真人一样思考，而不是像AI一样套模板。
+    const defaultSystemPrompt = '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长像真人一样思考，用接地气的方式表达观点，避免AI式的套路和过度比喻。你的文案让人感觉是朋友在聊天，而不是在看一篇精心包装的文章。'
+    const defaultUserPrompt = `你是一位真实的视频内容创作者，正在为自己的新视频策划文案框架。你要像真人一样思考，而不是像AI一样套模板。
 
 ## 已有的文案风格分析
 ${styleAnalysis}
@@ -108,11 +109,11 @@ ${topic}
         messages: [
           {
             role: 'system',
-            content: '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长像真人一样思考，用接地气的方式表达观点，避免AI式的套路和过度比喻。你的文案让人感觉是朋友在聊天，而不是在看一篇精心包装的文章。'
+            content: systemPrompt || defaultSystemPrompt
           },
           {
             role: 'user',
-            content: prompt
+            content: userPrompt || defaultUserPrompt
           }
         ],
         temperature: 0.8,

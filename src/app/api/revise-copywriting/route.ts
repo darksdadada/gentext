@@ -40,7 +40,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { styleAnalysis, topic, framework, currentCopywriting, feedback } = await request.json()
+    const { styleAnalysis, topic, framework, currentCopywriting, feedback, systemPrompt, userPrompt } = await request.json()
     
     if (!currentCopywriting || !feedback) {
       return NextResponse.json(
@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const prompt = `你是一位真实的视频内容创作者，正在根据用户反馈修改自己的文案。
+    const defaultSystemPrompt = '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长根据用户反馈修改文案，保持风格一致的同时满足用户需求。'
+    const defaultUserPrompt = `你是一位真实的视频内容创作者，正在根据用户反馈修改自己的文案。
 
 ## 文案风格分析
 ${styleAnalysis || '无'}
@@ -82,11 +83,11 @@ ${feedback}
         messages: [
           {
             role: 'system',
-            content: '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长根据用户反馈修改文案，保持风格一致的同时满足用户需求。'
+            content: systemPrompt || defaultSystemPrompt
           },
           {
             role: 'user',
-            content: prompt
+            content: userPrompt || defaultUserPrompt
           }
         ],
         temperature: 0.7,

@@ -7,7 +7,7 @@ import { Style } from '@/types'
 
 export default function HomePage() {
   const router = useRouter()
-  const { styles, deleteStyle, setCurrentStyle, setCurrentTopic } = useAppStore()
+  const { styles, deleteStyle, setCurrentStyle, setCurrentTopic, resetForNewCreation } = useAppStore()
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null)
   const [topic, setTopic] = useState('')
   const [showTopicInput, setShowTopicInput] = useState(false)
@@ -31,6 +31,7 @@ export default function HomePage() {
   const handleProceed = () => {
     if (!selectedStyle || !topic.trim()) return
     
+    resetForNewCreation()
     setCurrentStyle(selectedStyle)
     setCurrentTopic(topic.trim())
     router.push('/generate')
