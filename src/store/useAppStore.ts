@@ -23,6 +23,12 @@ export const useAppStore = create<AppState>()(
         styles: [...state.styles, style] 
       })),
       
+      updateStyle: (id: string, updates: Partial<Style>) => set((state) => ({
+        styles: state.styles.map((s) => 
+          s.id === id ? { ...s, ...updates } : s
+        )
+      })),
+      
       deleteStyle: (id: string) => set((state) => ({ 
         styles: state.styles.filter((s) => s.id !== id) 
       })),

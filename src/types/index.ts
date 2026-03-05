@@ -65,6 +65,7 @@ export interface AppState {
   
   setStyles: (styles: Style[]) => void
   addStyle: (style: Style) => void
+  updateStyle: (id: string, updates: Partial<Style>) => void
   deleteStyle: (id: string) => void
   setCurrentStyle: (style: Style | null) => void
   setCurrentTopic: (topic: string) => void
