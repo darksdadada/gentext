@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
-export const runtime = 'edge'
+const getApiKey = () => {
+  const apiKey = process.env.DASHSCOPE_API_KEY
+  if (!apiKey) {
+    throw new Error('DASHSCOPE_API_KEY 环境变量未配置，请在 .env.local 文件中设置')
+  }
+  return apiKey
+}
 
-const API_KEY = process.env.DASHSCOPE_API_KEY || 'sk-4561661278024ff4bcd1844225834ea8'
-const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+const createClient = () => {
+  return new OpenAI({
+    apiKey: getApiKey(),
+    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    timeout: 120000,
+  })
+}
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error | null = null
@@ -24,31 +36,6 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   }
   
   throw lastError
-}
-
-async function callAPI(prompt: string, systemPrompt: string): Promise<string> {
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'qwen-plus',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  return data.choices[0]?.message?.content || ''
 }
 
 export async function POST(request: NextRequest) {
@@ -85,12 +72,25 @@ ${framework}
 
 请直接输出文案内容，不需要额外的说明。`
 
-    const copywriting = await withRetry(async () => {
-      return await callAPI(
-        prompt,
-        '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长像真人一样写作，用接地气的方式表达观点，避免AI式的套路和过度比喻。你的文案让人感觉是朋友在聊天，而不是在看一篇精心包装的文章。'
-      )
+    const client = createClient()
+    const completion = await withRetry(async () => {
+      return await client.chat.completions.create({
+        model: 'qwen-plus',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一位真实的视频内容创作者，有着丰富的创作经验。你擅长像真人一样写作，用接地气的方式表达观点，避免AI式的套路和过度比喻。你的文案让人感觉是朋友在聊天，而不是在看一篇精心包装的文章。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+      })
     })
+
+    const copywriting = completion.choices[0]?.message?.content || ''
     
     return NextResponse.json({ copywriting })
   } catch (error) {
